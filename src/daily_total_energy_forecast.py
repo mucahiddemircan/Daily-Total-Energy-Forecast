@@ -15,7 +15,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import EarlyStopping as Keras_EarlyStopping
+from tensorflow.keras.callbacks import EarlyStopping
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -129,8 +129,7 @@ print(df_feat.head())
 
 # Feature columns to use for tree models
 feature_cols = ["EnerjiAnalizor_Current", "EnerjiAnalizor_Total_Power", #"Running",
-                "lag_1", "lag_7", "lag_14", "lag_28", "dayofweek", "month",
-                "is_weekend"]
+                "lag_1", "lag_7", "lag_14", "lag_28", "dayofweek", "month", "is_weekend"]
 
 # Correlation Heatmap
 plt.figure(figsize=(8, 8))
@@ -200,9 +199,9 @@ model.add(LSTM(32, activation="relu", input_shape=(seq_len,1)))
 model.add(Dense(16, activation="relu"))
 model.add(Dense(1))
 
-model.compile(optimizer=Adam(learning_rate=0.1), loss="mse")
-early_stop = Keras_EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
-model.fit(X_train_seq, y_train_seq, epochs=50, batch_size=8, verbose=1, callbacks=[early_stop])
+model.compile(optimizer=Adam(learning_rate=0.0001), loss="mse")
+early_stop = EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True)
+model.fit(X_train_seq, y_train_seq, validation_data=(X_val_seq, y_val_seq), epochs=100, batch_size=8, verbose=1, callbacks=[early_stop])
 
 y_val_pred_scaled = model.predict(X_val_seq)
 y_val_pred = scaler.inverse_transform(y_val_pred_scaled)
@@ -277,7 +276,7 @@ for i, date in enumerate(future_dates):
         "lag_28": history_rf["Daily_Energy_Consumption"].iloc[-28],
         "dayofweek": date.dayofweek,
         "month": date.month,
-        "is_weekend": 1 if date.dayofweek >= 5 else 0,
+        "is_weekend": 1 if date.dayofweek >= 5 else 0
     }
 
     X_new = pd.DataFrame([feat])
@@ -319,7 +318,7 @@ for i, date in enumerate(future_dates):
         "lag_28": history_xgb["Daily_Energy_Consumption"].iloc[-28],
         "dayofweek": date.dayofweek,
         "month": date.month,
-        "is_weekend": 1 if date.dayofweek >= 5 else 0,
+        "is_weekend": 1 if date.dayofweek >= 5 else 0
     }
 
     X_new = pd.DataFrame([feat])
@@ -367,9 +366,7 @@ plt.title("EnerjiAnalizor_Total_Kwh Forecast (August)")
 plt.legend()
 plt.show()
 
-print(forecast_df.head())
-
 #%% Save Models
-#joblib.dump(rf_energy, "../models/model_randomforest.pkl")
-#joblib.dump(xgb_energy, "../models/model_xgb.pkl")
-#joblib.dump(model, "../models/model_lstm.keras")
+joblib.dump(rf_energy, "../models/model_randomforest.pkl")
+joblib.dump(xgb_energy, "../models/model_xgb.pkl")
+joblib.dump(model, "../models/model_lstm.keras")
